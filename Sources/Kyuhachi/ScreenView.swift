@@ -8,6 +8,7 @@ import SwiftUI
 struct ScreenView: NSViewRepresentable {
     let emulator: Emulator
     let mouseCaptured: Bool
+    let aspect: ScreenAspect
 
     func makeNSView(context: Context) -> ScreenNSView {
         ScreenNSView(emulator: emulator)
@@ -15,6 +16,7 @@ struct ScreenView: NSViewRepresentable {
 
     func updateNSView(_ view: ScreenNSView, context: Context) {
         view.setMouseCaptured(mouseCaptured)
+        view.aspect = aspect
     }
 }
 
@@ -26,6 +28,24 @@ final class ScreenNSView: NSView {
     private var pendingMouse = CGPoint.zero
     /// Whether this view currently holds the cursor (hidden and fixed).
     private var holdsCursor = false
+
+    var aspect: ScreenAspect = .square {
+        didSet { if aspect != oldValue { needsLayout = true } }
+    }
+
+    /// Where the PC-98 screen is drawn: the largest rectangle of the chosen
+    /// shape that fits, centred.
+    private var screenRect: CGRect {
+        let ratio = aspect.ratio
+        var size = bounds.size
+        if size.width / max(size.height, 1) > ratio {
+            size.width = size.height * ratio
+        } else {
+            size.height = size.width / ratio
+        }
+        return CGRect(x: bounds.midX - size.width / 2, y: bounds.midY - size.height / 2,
+                      width: size.width, height: size.height)
+    }
 
     init(emulator: Emulator) {
         self.emulator = emulator
@@ -45,7 +65,7 @@ final class ScreenNSView: NSView {
         super.layout()
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        emulator.screenLayer.frame = bounds
+        emulator.screenLayer.frame = screenRect
         CATransaction.commit()
     }
 
@@ -190,11 +210,10 @@ final class ScreenNSView: NSView {
     /// Converts movement in view points to PC-98 screen pixels (640 wide).
     private func move(_ event: NSEvent) {
         guard emulator.mouseCaptured else { return }
-        let shownWidth = min(bounds.width, bounds.height * 640 / 400)
-        guard shownWidth > 0 else { return }
-        let scale = 640 / shownWidth
-        pendingMouse.x += event.deltaX * scale
-        pendingMouse.y += event.deltaY * scale
+        let shown = screenRect.size
+        guard shown.width > 0, shown.height > 0 else { return }
+        pendingMouse.x += event.deltaX * 640 / shown.width
+        pendingMouse.y += event.deltaY * 400 / shown.height
         let dx = Int(pendingMouse.x), dy = Int(pendingMouse.y)
         guard dx != 0 || dy != 0 else { return }
         pendingMouse.x -= CGFloat(dx)

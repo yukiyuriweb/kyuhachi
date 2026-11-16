@@ -5,6 +5,7 @@ struct ContentView: View {
     let library: Library
     let emulator: Emulator
     let saveStates: SaveStateStore
+    let settings: AppSettings
 
     @State private var selection: Game.ID?
     @State private var addingGame = false
@@ -12,6 +13,7 @@ struct ContentView: View {
     @State private var renaming: Game.ID?
     @State private var newName = ""
     @State private var visibleNotice: Emulator.Notice?
+    @State private var gameForSettings: Game?
 
     private var currentGame: Game? {
         emulator.currentGameID.flatMap(library.game)
@@ -44,6 +46,9 @@ struct ContentView: View {
             }
             Button("Cancel", role: .cancel) {}
         }
+        .sheet(item: $gameForSettings) { game in
+            GameSettingsView(game: game, library: library, settings: settings)
+        }
     }
 
     // MARK: Sidebar
@@ -62,6 +67,7 @@ struct ContentView: View {
                     renaming = id
                 }
                 restoreMenu(for: game)
+                Button("Game Settings…") { gameForSettings = game }
                 Button("Show in Finder") {
                     NSWorkspace.shared.activateFileViewerSelecting(game.disks)
                 }
@@ -109,7 +115,7 @@ struct ContentView: View {
     @ViewBuilder
     private var detail: some View {
         if let game = currentGame {
-            ScreenView(emulator: emulator, mouseCaptured: emulator.mouseCaptured)
+            ScreenView(emulator: emulator, mouseCaptured: emulator.mouseCaptured, aspect: settings.aspect)
                 .overlay(alignment: .top) {
                     if let visibleNotice {
                         Text(visibleNotice.text)

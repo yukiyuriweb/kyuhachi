@@ -31,10 +31,13 @@ final class Emulator {
     @ObservationIgnored let screenLayer: CALayer = {
         let layer = CALayer()
         layer.backgroundColor = CGColor.black
-        layer.contentsGravity = .resizeAspect
+        layer.contentsGravity = .resize  // the screen view sizes it to the chosen shape
         layer.magnificationFilter = .nearest
         return layer
     }()
+
+    /// Core options the current game overrides.
+    @ObservationIgnored private var gameOverrides: [String: String] = [:]
 
     @ObservationIgnored private var started = false
     @ObservationIgnored private var audio: AudioOutput?
@@ -51,6 +54,7 @@ final class Emulator {
     /// Connects the game's hard disk (if any), puts its first two floppies
     /// in the drives and restarts the machine.
     func play(_ game: Game) {
+        refreshOptions(gameOverrides: game.options ?? [:])
         startIfNeeded()
         currentGameID = game.id
         let floppies = Array(game.floppies.prefix(2))
@@ -87,6 +91,18 @@ final class Emulator {
         runner.perform { retro_reset() }
     }
 
+    /// Hands the core the options in effect: the app-wide settings with the
+    /// current game's overrides on top. Volumes change at once; machine
+    /// options at the next reset.
+    func refreshOptions(gameOverrides: [String: String]? = nil) {
+        if let gameOverrides {
+            self.gameOverrides = gameOverrides
+        }
+        runner.setOptions(CoreOptions.repairedDefaults
+            .merging(AppSettings.shared.coreOptions) { _, app in app }
+            .merging(self.gameOverrides) { _, game in game })
+    }
+
     func showNotice(_ text: String) {
         notice = Notice(text: text)
     }
@@ -107,6 +123,7 @@ final class Emulator {
 
     /// Restores a state of `game`, including the disks it had in its drives.
     func loadState(from url: URL, game: Game, completion: @escaping @MainActor (Bool) -> Void) {
+        refreshOptions(gameOverrides: game.options ?? [:])
         startIfNeeded()
         currentGameID = game.id
         let path = url.path

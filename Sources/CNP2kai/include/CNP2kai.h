@@ -47,6 +47,14 @@ const char *kyuhachi_hdd_path(unsigned drive);
 /// RetroArch would pass unless the user changed it), or NULL if unknown.
 const char *kyuhachi_option_default(const char *key);
 
+/// The values a core option can take, from NP2kai's option table.
+int kyuhachi_option_value_count(const char *key);
+const char *kyuhachi_option_value(const char *key, int index);
+
+/// The option table's own copy of `value` (a string that lives as long as
+/// the program), or NULL if `value` is not one of the option's values.
+const char *kyuhachi_option_canonical(const char *key, const char *value);
+
 /// Presses or releases a key on the PC-98 keyboard, given its PC-98 key
 /// code (0x00-0x7f). Must be called on the core thread.
 void kyuhachi_key_down(unsigned char code);

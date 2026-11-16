@@ -42,7 +42,7 @@ void kyuhachi_set_hdd(unsigned drive, const char *path)
 /* NP2kai's table of libretro core options (libretro_core_options.h). */
 extern struct retro_core_option_definition option_defs_us[];
 
-const char *kyuhachi_option_default(const char *key)
+static struct retro_core_option_definition *FindOption(const char *key)
 {
 	struct retro_core_option_definition *option;
 
@@ -50,7 +50,56 @@ const char *kyuhachi_option_default(const char *key)
 	{
 		if (strcmp(option->key, key) == 0)
 		{
-			return option->default_value;
+			return option;
+		}
+	}
+	return NULL;
+}
+
+const char *kyuhachi_option_default(const char *key)
+{
+	struct retro_core_option_definition *option = FindOption(key);
+
+	return option ? option->default_value : NULL;
+}
+
+int kyuhachi_option_value_count(const char *key)
+{
+	struct retro_core_option_definition *option = FindOption(key);
+	int count = 0;
+
+	if (option)
+	{
+		while (count < RETRO_NUM_CORE_OPTION_VALUES_MAX && option->values[count].value != NULL)
+		{
+			count++;
+		}
+	}
+	return count;
+}
+
+const char *kyuhachi_option_value(const char *key, int index)
+{
+	struct retro_core_option_definition *option = FindOption(key);
+
+	if (option == NULL || index < 0 || index >= kyuhachi_option_value_count(key))
+	{
+		return NULL;
+	}
+	return option->values[index].value;
+}
+
+const char *kyuhachi_option_canonical(const char *key, const char *value)
+{
+	int count = kyuhachi_option_value_count(key);
+	int i;
+
+	for (i = 0; i < count; i++)
+	{
+		const char *candidate = kyuhachi_option_value(key, i);
+		if (strcmp(candidate, value) == 0)
+		{
+			return candidate;
 		}
 	}
 	return NULL;
