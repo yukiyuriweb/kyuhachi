@@ -22,6 +22,9 @@
 "Reset the PC-98" = "PC-98 をリセット";
 "Other Disk…" = "ほかのディスク…";
 "Eject" = "取り出す";
+"New Blank Disk…" = "新しい空のディスク…";
+"Create an unformatted 2HD floppy disk. The game formats it when it asks for a new disk." = "未フォーマットの 2HD フロッピーディスクを作ります。新しいディスクを求められたときに、ゲームがフォーマットします。";
+"Could not create the disk" = "ディスクを作れませんでした";
 "Capture Mouse" = "マウスを使う";
 "Send the mouse to the PC-98 (press ⌘ to release)" = "マウスを PC-98 で使う（⌘ で解除）";
 "Press ⌘ to release the mouse" = "⌘ でマウスを解除";

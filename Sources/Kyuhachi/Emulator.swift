@@ -82,6 +82,19 @@ final class Emulator {
         runner.perform { kyuhachi_set_fdd(UInt32(drive), path) }
     }
 
+    /// Creates an unformatted 2HD disk at `url` and puts it in `drive`.
+    /// Returns false if the file could not be created.
+    func insertBlankDisk(at url: URL, into drive: Int) -> Bool {
+        // The save panel has already confirmed replacing an existing file;
+        // removing it first means the check below sees only the new one.
+        try? FileManager.default.removeItem(at: url)
+        // Writing the image touches no machine state, so it can happen here.
+        kyuhachi_new_2hd(url.path)
+        guard FileManager.default.fileExists(atPath: url.path) else { return false }
+        insert(url, into: drive)
+        return true
+    }
+
     func eject(_ drive: Int) {
         drives[drive] = nil
         runner.perform { kyuhachi_eject_fdd(UInt32(drive)) }
