@@ -1,0 +1,28 @@
+/* Sidebar */
+"No Games" = "ゲームがありません";
+"Add a game's floppy or hard disk images with the + button, or drop them here." = "＋ボタンでゲームのフロッピーやハードディスクのイメージを追加するか、ここにドロップしてください。";
+"Add Game…" = "ゲームを追加…";
+"%lld floppies" = "フロッピー %lld 枚";
+"Hard disk" = "ハードディスク";
+"Hard disk, %lld floppies" = "ハードディスク、フロッピー %lld 枚";
+"Yesterday" = "昨日";
+"Play" = "起動";
+"Rename…" = "名前を変更…";
+"Show in Finder" = "Finder に表示";
+"Remove from Library" = "一覧から削除";
+"Rename Game" = "ゲーム名を変更";
+"Name" = "名前";
+"Rename" = "変更";
+"Cancel" = "キャンセル";
+
+/* Screen */
+"No Game Running" = "起動中のゲームはありません";
+"Double-click a game in the sidebar to start it." = "サイドバーのゲームをダブルクリックすると起動します。";
+"Reset" = "リセット";
+"Reset the PC-98" = "PC-98 をリセット";
+"Other Disk…" = "ほかのディスク…";
+"Eject" = "取り出す";
+"Capture Mouse" = "マウスを使う";
+"Send the mouse to the PC-98 (press ⌘ to release)" = "マウスを PC-98 で使う（⌘ で解除）";
+"Press ⌘ to release the mouse" = "⌘ でマウスを解除";
+"Change the disk in floppy drive %lld" = "フロッピードライブ %lld のディスクを入れ替える";

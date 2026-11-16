@@ -1,0 +1,204 @@
+import AppKit
+import Carbon.HIToolbox
+import SwiftUI
+
+/// The PC-98 screen. Takes keyboard focus and sends keys to the emulator;
+/// ⌘ shortcuts still reach the app's menus. Clicking captures the mouse for
+/// the PC-98; pressing ⌘ releases it.
+struct ScreenView: NSViewRepresentable {
+    let emulator: Emulator
+    let mouseCaptured: Bool
+
+    func makeNSView(context: Context) -> ScreenNSView {
+        ScreenNSView(emulator: emulator)
+    }
+
+    func updateNSView(_ view: ScreenNSView, context: Context) {
+        view.setMouseCaptured(mouseCaptured)
+    }
+}
+
+final class ScreenNSView: NSView {
+    private let emulator: Emulator
+    /// PC-98 keys currently held down, so they can be released on focus loss.
+    private var heldKeys: Set<UInt8> = []
+    /// Movement not yet sent because it was less than one PC-98 pixel.
+    private var pendingMouse = CGPoint.zero
+    /// Whether this view currently holds the cursor (hidden and fixed).
+    private var holdsCursor = false
+
+    init(emulator: Emulator) {
+        self.emulator = emulator
+        super.init(frame: .zero)
+        wantsLayer = true
+        layer?.backgroundColor = CGColor.black
+        layer?.addSublayer(emulator.screenLayer)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var acceptsFirstResponder: Bool { true }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func layout() {
+        super.layout()
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        emulator.screenLayer.frame = bounds
+        CATransaction.commit()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        window?.makeFirstResponder(self)
+        window?.acceptsMouseMovedEvents = true
+        NotificationCenter.default.removeObserver(self)
+        if let window {
+            NotificationCenter.default.addObserver(
+                self, selector: #selector(windowDidResignKey), name: NSWindow.didResignKeyNotification, object: window)
+        }
+    }
+
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        super.viewWillMove(toWindow: newWindow)
+        if newWindow == nil {
+            emulator.mouseCaptured = false
+            setMouseCaptured(false)
+        }
+    }
+
+    override func resignFirstResponder() -> Bool {
+        releaseAllKeys()
+        emulator.mouseCaptured = false
+        return super.resignFirstResponder()
+    }
+
+    @objc private func windowDidResignKey(_ notification: Notification) {
+        releaseAllKeys()
+        emulator.mouseCaptured = false
+    }
+
+    // MARK: Keyboard
+
+    override func keyDown(with event: NSEvent) {
+        if event.modifierFlags.contains(.command) {
+            super.keyDown(with: event)
+            return
+        }
+        if !event.isARepeat, let code = KeyMap.pc98Code(for: event.keyCode) {
+            press(code, down: true)
+        }
+    }
+
+    override func keyUp(with event: NSEvent) {
+        if let code = KeyMap.pc98Code(for: event.keyCode) {
+            press(code, down: false)
+        }
+    }
+
+    override func flagsChanged(with event: NSEvent) {
+        let flags = event.modifierFlags
+        if flags.contains(.command) {
+            emulator.mouseCaptured = false
+        }
+        switch Int(event.keyCode) {
+        case kVK_Shift, kVK_RightShift:
+            press(KeyMap.shift, down: flags.contains(.shift))
+        case kVK_Control, kVK_RightControl:
+            press(KeyMap.ctrl, down: flags.contains(.control))
+        case kVK_Option, kVK_RightOption:
+            press(KeyMap.grph, down: flags.contains(.option))
+        case kVK_CapsLock:
+            // CAPS is a locking key on the PC-98 too: held down while on.
+            press(KeyMap.caps, down: flags.contains(.capsLock))
+        default:
+            break
+        }
+    }
+
+    private func press(_ code: UInt8, down: Bool) {
+        if down {
+            guard heldKeys.insert(code).inserted else { return }
+        } else {
+            guard heldKeys.remove(code) != nil else { return }
+        }
+        emulator.key(code, down: down)
+    }
+
+    private func releaseAllKeys() {
+        for code in heldKeys where code != KeyMap.caps {
+            emulator.key(code, down: false)
+        }
+        heldKeys = heldKeys.intersection([KeyMap.caps])
+    }
+
+    // MARK: Mouse
+
+    func setMouseCaptured(_ captured: Bool) {
+        guard captured != holdsCursor else { return }
+        holdsCursor = captured
+        if captured {
+            window?.makeFirstResponder(self)
+            // Park the cursor in the middle of the screen so clicks land here.
+            if let window, let screen = window.screen {
+                let inWindow = convert(NSPoint(x: bounds.midX, y: bounds.midY), to: nil)
+                let onScreen = window.convertPoint(toScreen: inWindow)
+                CGWarpMouseCursorPosition(CGPoint(x: onScreen.x, y: screen.frame.maxY - onScreen.y))
+            }
+            CGAssociateMouseAndMouseCursorPosition(0)
+            NSCursor.hide()
+            pendingMouse = .zero
+        } else {
+            CGAssociateMouseAndMouseCursorPosition(1)
+            NSCursor.unhide()
+            emulator.setMouseButton(left: false, right: false)
+        }
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(self)
+        if emulator.mouseCaptured {
+            emulator.setMouseButton(left: true)
+        } else {
+            emulator.mouseCaptured = true
+        }
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        if emulator.mouseCaptured {
+            emulator.setMouseButton(left: false)
+        }
+    }
+
+    override func rightMouseDown(with event: NSEvent) {
+        if emulator.mouseCaptured {
+            emulator.setMouseButton(right: true)
+        }
+    }
+
+    override func rightMouseUp(with event: NSEvent) {
+        if emulator.mouseCaptured {
+            emulator.setMouseButton(right: false)
+        }
+    }
+
+    override func mouseMoved(with event: NSEvent) { move(event) }
+    override func mouseDragged(with event: NSEvent) { move(event) }
+    override func rightMouseDragged(with event: NSEvent) { move(event) }
+
+    /// Converts movement in view points to PC-98 screen pixels (640 wide).
+    private func move(_ event: NSEvent) {
+        guard emulator.mouseCaptured else { return }
+        let shownWidth = min(bounds.width, bounds.height * 640 / 400)
+        guard shownWidth > 0 else { return }
+        let scale = 640 / shownWidth
+        pendingMouse.x += event.deltaX * scale
+        pendingMouse.y += event.deltaY * scale
+        let dx = Int(pendingMouse.x), dy = Int(pendingMouse.y)
+        guard dx != 0 || dy != 0 else { return }
+        pendingMouse.x -= CGFloat(dx)
+        pendingMouse.y -= CGFloat(dy)
+        emulator.moveMouse(dx: dx, dy: dy)
+    }
+}
