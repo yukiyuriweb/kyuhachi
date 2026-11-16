@@ -8,6 +8,8 @@ struct Game: Identifiable, Codable, Hashable {
     var name: String
     var disks: [URL]
     var lastPlayed: Date?
+    /// Core options this game overrides (machine settings it needs), by key.
+    var options: [String: String]? = nil
 
     var floppies: [URL] {
         disks.filter { floppyExtensions.contains($0.pathExtension.lowercased()) }
@@ -72,6 +74,18 @@ final class Library {
     func remove(_ ids: Set<Game.ID>) {
         games.removeAll { ids.contains($0.id) }
         save()
+    }
+
+    /// Sets (or, with nil, clears) a core option override for one game.
+    func setOption(_ key: String, to value: String?, for id: Game.ID) {
+        guard let i = games.firstIndex(where: { $0.id == id }) else { return }
+        var options = games[i].options ?? [:]
+        options[key] = value
+        games[i].options = options.isEmpty ? nil : options
+        save()
+        if Emulator.shared.currentGameID == id {
+            Emulator.shared.refreshOptions(gameOverrides: games[i].options ?? [:])
+        }
     }
 
     func markPlayed(_ id: Game.ID) {

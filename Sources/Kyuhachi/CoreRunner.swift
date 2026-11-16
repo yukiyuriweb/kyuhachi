@@ -21,6 +21,9 @@ final class CoreRunner: @unchecked Sendable {
     nonisolated(unsafe) var onFrame: (@Sendable (CGImage) -> Void)?
 
     private let jobs = Mutex<[@Sendable () -> Void]>([])
+    /// Core options that differ from NP2kai's defaults, and whether the
+    /// core has yet to read them.
+    private let options = Mutex<(values: [String: String], changed: Bool)>(([:], false))
     private let mouseInput = Mutex(MouseState())
 
     // Core-thread state.
@@ -63,6 +66,11 @@ final class CoreRunner: @unchecked Sendable {
         thread.name = "NP2kai"
         thread.qualityOfService = .userInteractive
         thread.start()
+    }
+
+    /// Sets the core options; the core picks them up before its next frame.
+    func setOptions(_ values: [String: String]) {
+        options.withLock { $0 = (values, true) }
     }
 
     /// Runs `job` on the core thread before the next frame.
@@ -124,14 +132,24 @@ final class CoreRunner: @unchecked Sendable {
             pixelFormat = format
             return true
         case RETRO_ENVIRONMENT_GET_VARIABLE:
-            // Answer with each core option's default, as RetroArch does for a
-            // fresh install. (Without this the core leaves some features off;
-            // the mouse, for one, only works when "np2kai_inputmouse" is ON.)
+            // Answer with the user's choice, or else the option's default as
+            // RetroArch does. (Without an answer the core leaves some features
+            // off; the mouse, for one, only works when "np2kai_inputmouse" is ON.)
             guard let variable = data?.assumingMemoryBound(to: retro_variable.self),
-                  let key = variable.pointee.key,
-                  let value = kyuhachi_option_default(key)
+                  let key = variable.pointee.key
+            else { return false }
+            let chosen = options.withLock { $0.values[String(cString: key)] }
+            // The core keeps the pointer, so hand it the option table's own string.
+            guard let value = chosen.flatMap({ kyuhachi_option_canonical(key, $0) }) ?? kyuhachi_option_default(key)
             else { return false }
             variable.pointee.value = value
+            return true
+        case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE:
+            guard let data else { return false }
+            data.assumingMemoryBound(to: Bool.self).pointee = options.withLock { state in
+                defer { state.changed = false }
+                return state.changed
+            }
             return true
         case RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE:
             return true

@@ -40,3 +40,27 @@
 "State restored" = "保存した状態から再開しました";
 "Could not restore the state" = "保存した状態から再開できませんでした";
 "Machine" = "マシン";
+
+/* Settings */
+"Model" = "機種";
+"CPU base clock" = "CPU ベースクロック";
+"CPU clock multiplier" = "CPU クロック倍率";
+"Memory" = "メモリ";
+"Sound board" = "サウンドボード";
+"Takes effect when a game starts or the PC-98 is reset. Games can override these in Game Settings." = "ゲームの起動時か、PC-98 のリセット時に反映されます。ゲームごとの設定で上書きできます。";
+"Sound" = "サウンド";
+"Master" = "全体";
+"Rhythm" = "リズム";
+"Beep" = "ビープ";
+"Floppy seek sound" = "フロッピーのシーク音";
+"Seek sound volume" = "シーク音の音量";
+"On" = "オン";
+"Off" = "オフ";
+"Display" = "表示";
+"Screen shape" = "画面の形";
+"Square pixels (16:10)" = "正方形のドット（16:10）";
+"Monitor (4:3)" = "モニタ（4:3）";
+"Game Settings…" = "ゲームの設定…";
+"Default (%@)" = "既定（%@）";
+"Takes effect the next time this game starts or the PC-98 is reset." = "次にこのゲームを起動したときか、PC-98 をリセットしたときに反映されます。";
+"Done" = "完了";

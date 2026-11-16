@@ -21,6 +21,11 @@ Homebrew libraries are needed.
 - Text is drawn with JF Dot Shinonome Mincho 16, a 16-dot bitmap font close to
   the PC-98's own. Characters it lacks (such as NEC's circled numbers) fall
   back to a system font.
+- Settings (⌘,) set the machine (model, CPU clock, memory, sound board),
+  volumes, the floppy seek sound, and the screen shape (square pixels or a
+  4:3 monitor). A game can override the machine settings it needs from its
+  context menu (Game Settings…). Machine settings apply at the next start or
+  reset; volumes apply at once.
 - No BIOS ROMs are needed. If you have dumps from your own machine, put them in
   `~/Library/Application Support/Kyuhachi/np2kai/` (`bios.rom`, `FONT.ROM` or
   `font.bmp`, `sound.rom`, …) and NP2kai uses them instead of its built-in
