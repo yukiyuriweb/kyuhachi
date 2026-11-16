@@ -20,6 +20,13 @@ final class Emulator {
     /// movement and clicks sent to the PC-98.
     var mouseCaptured = false
 
+    /// A short message shown over the screen for a moment.
+    struct Notice: Equatable {
+        let id = UUID()
+        let text: String
+    }
+    private(set) var notice: Notice?
+
     /// Shows the latest frame; screen views host this layer.
     @ObservationIgnored let screenLayer: CALayer = {
         let layer = CALayer()
@@ -78,6 +85,42 @@ final class Emulator {
 
     func reset() {
         runner.perform { retro_reset() }
+    }
+
+    func showNotice(_ text: String) {
+        notice = Notice(text: text)
+    }
+
+    /// The frame on screen now.
+    var currentFrame: CGImage? {
+        screenLayer.contents.map { $0 as! CGImage }
+    }
+
+    /// Saves the machine state to `url`; calls `completion` with the result.
+    func saveState(to url: URL, completion: @escaping @MainActor (Bool) -> Void) {
+        let path = url.path
+        runner.perform {
+            let ok = kyuhachi_save_state(path) == 1
+            Task { @MainActor in completion(ok) }
+        }
+    }
+
+    /// Restores a state of `game`, including the disks it had in its drives.
+    func loadState(from url: URL, game: Game, completion: @escaping @MainActor (Bool) -> Void) {
+        startIfNeeded()
+        currentGameID = game.id
+        let path = url.path
+        runner.perform {
+            let ok = kyuhachi_load_state(path) == 1
+            let floppies = (0..<2).map { kyuhachi_fdd_path(UInt32($0)).map { String(cString: $0) } }
+            let hardDisk = kyuhachi_hdd_path(0).map { String(cString: $0) }
+            Task { @MainActor in
+                let emulator = Emulator.shared
+                emulator.drives = floppies.map { $0.map { URL(fileURLWithPath: $0) } }
+                emulator.hardDisk = hardDisk.map { URL(fileURLWithPath: $0) }
+                completion(ok)
+            }
+        }
     }
 
     func key(_ code: UInt8, down: Bool) {

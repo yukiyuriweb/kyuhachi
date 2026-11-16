@@ -4,13 +4,14 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     let library: Library
     let emulator: Emulator
+    let saveStates: SaveStateStore
 
     @State private var selection: Game.ID?
     @State private var addingGame = false
     @State private var choosingDiskForDrive: Int?
     @State private var renaming: Game.ID?
     @State private var newName = ""
-    @State private var showsReleaseHint = false
+    @State private var visibleNotice: Emulator.Notice?
 
     private var currentGame: Game? {
         emulator.currentGameID.flatMap(library.game)
@@ -60,6 +61,7 @@ struct ContentView: View {
                     newName = game.name
                     renaming = id
                 }
+                restoreMenu(for: game)
                 Button("Show in Finder") {
                     NSWorkspace.shared.activateFileViewerSelecting(game.disks)
                 }
@@ -109,8 +111,8 @@ struct ContentView: View {
         if let game = currentGame {
             ScreenView(emulator: emulator, mouseCaptured: emulator.mouseCaptured)
                 .overlay(alignment: .top) {
-                    if showsReleaseHint {
-                        Text("Press ⌘ to release the mouse")
+                    if let visibleNotice {
+                        Text(visibleNotice.text)
                             .font(.callout)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
@@ -120,13 +122,15 @@ struct ContentView: View {
                     }
                 }
                 .onChange(of: emulator.mouseCaptured) { _, captured in
-                    withAnimation { showsReleaseHint = captured }
                     if captured {
-                        Task {
-                            try? await Task.sleep(for: .seconds(2))
-                            withAnimation { showsReleaseHint = false }
-                        }
+                        emulator.showNotice(String(localized: "Press ⌘ to release the mouse"))
                     }
+                }
+                .task(id: emulator.notice) {
+                    guard let notice = emulator.notice else { return }
+                    withAnimation { visibleNotice = notice }
+                    try? await Task.sleep(for: .seconds(2))
+                    withAnimation { visibleNotice = nil }
                 }
                 .navigationTitle(game.name)
                 .navigationSubtitle(driveSummary)
@@ -140,6 +144,11 @@ struct ContentView: View {
                     ToolbarItemGroup {
                         driveMenu(0, game: game)
                         driveMenu(1, game: game)
+                    }
+                    ToolbarItemGroup {
+                        Button("Save State", systemImage: "square.and.arrow.down") { saveStates.save(emulator) }
+                            .help("Save the game as it is now (⌘S)")
+                        restoreMenu(for: game)
                     }
                     ToolbarItem {
                         Toggle("Capture Mouse", systemImage: "computermouse", isOn: Binding(
@@ -169,6 +178,41 @@ struct ContentView: View {
             parts.insert("HDD: \(hardDisk.lastPathComponent)", at: 0)
         }
         return parts.joined(separator: "   ")
+    }
+
+    /// Saved states of `game`, newest first; choosing one restores it.
+    private func restoreMenu(for game: Game) -> some View {
+        let states = saveStates.states(for: game.id)
+        return Menu {
+            ForEach(states) { state in
+                Button {
+                    library.markPlayed(game.id)
+                    saveStates.restore(state, of: game, in: emulator)
+                } label: {
+                    Label {
+                        Text(state.date.formatted(date: .abbreviated, time: .shortened))
+                    } icon: {
+                        if let thumbnail = state.thumbnail {
+                            Image(nsImage: thumbnail)
+                        }
+                    }
+                }
+            }
+            if !states.isEmpty {
+                Divider()
+                Menu("Delete") {
+                    ForEach(states) { state in
+                        Button(state.date.formatted(date: .abbreviated, time: .shortened), role: .destructive) {
+                            saveStates.delete(state)
+                        }
+                    }
+                }
+            }
+            Button("Show Saved States in Finder") { saveStates.showInFinder(for: game.id) }
+        } label: {
+            Label("Restore", systemImage: "clock.arrow.circlepath")
+        }
+        .help("Go back to a saved state")
     }
 
     private func driveMenu(_ drive: Int, game: Game) -> some View {
