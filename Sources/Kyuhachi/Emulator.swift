@@ -51,14 +51,13 @@ final class Emulator {
         return url
     }()
 
-    /// Connects the game's hard disk (if any), puts its first two floppies
+    /// Connects the game's hard disk (if any), puts its startup floppies
     /// in the drives and restarts the machine.
     func play(_ game: Game) {
         refreshOptions(gameOverrides: game.options ?? [:])
         startIfNeeded()
         currentGameID = game.id
-        let floppies = Array(game.floppies.prefix(2))
-        drives = [floppies.first, floppies.count > 1 ? floppies[1] : nil]
+        drives = game.startFloppies
         hardDisk = game.hardDisk
         let paths = drives.map { $0?.path }
         let hardDiskPath = hardDisk?.path

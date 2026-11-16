@@ -64,6 +64,9 @@
 "Square pixels (16:10)" = "正方形のドット（16:10）";
 "Monitor (4:3)" = "モニタ（4:3）";
 "Game Settings…" = "ゲームの設定…";
+"Startup Disks" = "起動時のディスク";
+"Put in the drives when this game starts." = "ゲームの起動時にドライブに入れます。";
+"None" = "なし";
 "Default (%@)" = "既定（%@）";
 "Takes effect the next time this game starts or the PC-98 is reset." = "次にこのゲームを起動したときか、PC-98 をリセットしたときに反映されます。";
 "Done" = "完了";

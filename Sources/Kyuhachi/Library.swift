@@ -10,9 +10,19 @@ struct Game: Identifiable, Codable, Hashable {
     var lastPlayed: Date?
     /// Core options this game overrides (machine settings it needs), by key.
     var options: [String: String]? = nil
+    /// The disks to put in FDD1 and FDD2 at startup, if the user chose them.
+    var startDisks: [URL?]? = nil
 
     var floppies: [URL] {
         disks.filter { floppyExtensions.contains($0.pathExtension.lowercased()) }
+    }
+
+    /// The disks for FDD1 and FDD2 at startup: the ones the user chose, or
+    /// else the first two floppies.
+    var startFloppies: [URL?] {
+        if let startDisks, startDisks.count == 2 { return startDisks }
+        let floppies = self.floppies
+        return [floppies.first, floppies.count > 1 ? floppies[1] : nil]
     }
 
     var hardDisk: URL? {
@@ -93,6 +103,15 @@ final class Library {
         if Emulator.shared.currentGameID == id {
             Emulator.shared.refreshOptions(gameOverrides: games[i].options ?? [:])
         }
+    }
+
+    /// Chooses the disk (or none) that goes in `drive` when the game starts.
+    func setStartDisk(_ url: URL?, drive: Int, for id: Game.ID) {
+        guard let i = games.firstIndex(where: { $0.id == id }) else { return }
+        var disks = games[i].startFloppies
+        disks[drive] = url
+        games[i].startDisks = disks
+        save()
     }
 
     func markPlayed(_ id: Game.ID) {
