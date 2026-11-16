@@ -231,12 +231,29 @@ struct ContentView: View {
             }
             Divider()
             Button("Other Disk…") { choosingDiskForDrive = drive }
+            Button("New Blank Disk…") { createBlankDisk(in: drive, for: game) }
             Button("Eject") { emulator.eject(drive) }
                 .disabled(emulator.drives[drive] == nil)
         } label: {
             Label("FDD\(drive + 1)", systemImage: "opticaldiscdrive")
         }
         .help("Change the disk in floppy drive \(drive + 1)")
+    }
+
+    /// Asks where to save a new unformatted 2HD disk (for games that make
+    /// their own user disk), adds it to the game and puts it in `drive`.
+    private func createBlankDisk(in drive: Int, for game: Game) {
+        let panel = NSSavePanel()
+        panel.message = String(localized: "Create an unformatted 2HD floppy disk. The game formats it when it asks for a new disk.")
+        panel.allowedContentTypes = [UTType(filenameExtension: "d88") ?? .data]
+        panel.nameFieldStringValue = "\(game.name) User.d88"
+        panel.directoryURL = game.disks.first?.deletingLastPathComponent()
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        if emulator.insertBlankDisk(at: url, into: drive) {
+            library.addDisk(url, to: game.id)
+        } else {
+            emulator.showNotice(String(localized: "Could not create the disk"))
+        }
     }
 }
 

@@ -71,6 +71,13 @@ final class Library {
         save()
     }
 
+    /// Adds a disk image to the end of a game's disks.
+    func addDisk(_ url: URL, to id: Game.ID) {
+        guard let i = games.firstIndex(where: { $0.id == id }), !games[i].disks.contains(url) else { return }
+        games[i].disks.append(url)
+        save()
+    }
+
     func remove(_ ids: Set<Game.ID>) {
         games.removeAll { ids.contains($0.id) }
         save()

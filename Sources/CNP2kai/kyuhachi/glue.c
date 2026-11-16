@@ -18,6 +18,14 @@ void kyuhachi_eject_fdd(unsigned drive)
 	diskdrv_setfdd((REG8)drive, NULL, 0);
 }
 
+#include <fdd/newdisk.h>
+
+void kyuhachi_new_2hd(const char *path)
+{
+	// 0x20 is the 2HD media type in a D88 header.
+	newdisk_fdd(path, 0x20, "");
+}
+
 #include <keystat.h>
 
 void kyuhachi_key_down(unsigned char code)

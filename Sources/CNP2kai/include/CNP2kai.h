@@ -24,6 +24,10 @@ void kyuhachi_ready_fdd(unsigned drive, const char *path);
 /// Ejects the disk in floppy drive `drive`. Must be called on the core thread.
 void kyuhachi_eject_fdd(unsigned drive);
 
+/// Creates an unformatted 2HD floppy image (an empty D88 file) at `path`,
+/// for games that format a new user disk themselves.
+void kyuhachi_new_2hd(const char *path);
+
 /// Sets the hard disk image for IDE drive `drive` (0 = the first hard
 /// disk), or removes it when `path` is NULL. Takes effect at the next reset.
 /// Must be called on the core thread.
