@@ -51,7 +51,8 @@ struct GameSettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        let overrides = library.game(game.id)?.options ?? [:]
+        let current = library.game(game.id) ?? game
+        let overrides = current.options ?? [:]
         VStack(spacing: 0) {
             Form {
                 Section {
@@ -73,6 +74,27 @@ struct GameSettingsView: View {
                 } footer: {
                     Text("Takes effect the next time this game starts or the PC-98 is reset.")
                         .foregroundStyle(.secondary)
+                }
+                if !current.floppies.isEmpty {
+                    Section {
+                        ForEach(0..<2, id: \.self) { drive in
+                            Picker("FDD\(drive + 1)", selection: Binding<URL?>(
+                                get: { current.startFloppies[drive] },
+                                set: { library.setStartDisk($0, drive: drive, for: game.id) }
+                            )) {
+                                Text("None").tag(URL?.none)
+                                Divider()
+                                ForEach(current.floppies, id: \.self) { disk in
+                                    Text(disk.lastPathComponent).tag(URL?.some(disk))
+                                }
+                            }
+                        }
+                    } header: {
+                        Text("Startup Disks")
+                    } footer: {
+                        Text("Put in the drives when this game starts.")
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             .formStyle(.grouped)
