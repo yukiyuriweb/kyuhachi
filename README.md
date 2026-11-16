@@ -13,6 +13,11 @@ Homebrew libraries are needed.
   NP2kai reads. Hard disk images: HDI, THD, NHD, VHD, SLN (on the first IDE
   drive).
 - Swap disks from the FDD1/FDD2 toolbar menus, or drop images on the screen.
+- Save states: ⌘S (or the toolbar) saves the machine as it is now, with a
+  screenshot; the Restore menu lists a game's states, newest first, and
+  ⌘⇧S goes back to the latest one. States live in
+  `~/Library/Application Support/Kyuhachi/States/` and may not load in a
+  build with a different NP2kai version.
 - Text is drawn with JF Dot Shinonome Mincho 16, a 16-dot bitmap font close to
   the PC-98's own. Characters it lacks (such as NEC's circled numbers) fall
   back to a system font.

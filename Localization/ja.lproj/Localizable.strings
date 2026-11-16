@@ -26,3 +26,17 @@
 "Send the mouse to the PC-98 (press ⌘ to release)" = "マウスを PC-98 で使う（⌘ で解除）";
 "Press ⌘ to release the mouse" = "⌘ でマウスを解除";
 "Change the disk in floppy drive %lld" = "フロッピードライブ %lld のディスクを入れ替える";
+
+/* Save states */
+"Save State" = "状態を保存";
+"Save the game as it is now (⌘S)" = "いまの状態を保存（⌘S）";
+"Restore" = "再開";
+"Go back to a saved state" = "保存した状態から再開";
+"Restore Latest State" = "最新の保存から再開";
+"Delete" = "削除";
+"Show Saved States in Finder" = "保存した状態を Finder で表示";
+"State saved" = "状態を保存しました";
+"Could not save the state" = "状態を保存できませんでした";
+"State restored" = "保存した状態から再開しました";
+"Could not restore the state" = "保存した状態から再開できませんでした";
+"Machine" = "マシン";

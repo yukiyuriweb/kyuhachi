@@ -55,3 +55,34 @@ const char *kyuhachi_option_default(const char *key)
 	}
 	return NULL;
 }
+
+#include <statsave.h>
+#include <diskimage/fddfile.h>
+
+/* statsave returns STATFLAG_FAILURE (-1) on failure; positive values are
+   warnings (for example, a disk has changed since the state was saved). */
+int kyuhachi_save_state(const char *path)
+{
+	return statsave_save_d(path) != STATFLAG_FAILURE;
+}
+
+int kyuhachi_load_state(const char *path)
+{
+	return statsave_load_d(path) != STATFLAG_FAILURE;
+}
+
+const char *kyuhachi_fdd_path(unsigned drive)
+{
+	UINT ftype;
+	int ro;
+	const OEMCHAR *path = fdd_getfileex((REG8)drive, &ftype, &ro);
+
+	return (path != NULL && path[0] != '\0') ? path : NULL;
+}
+
+const char *kyuhachi_hdd_path(unsigned drive)
+{
+	const OEMCHAR *path = diskdrv_getsxsi((REG8)drive);
+
+	return (path != NULL && path[0] != '\0') ? path : NULL;
+}

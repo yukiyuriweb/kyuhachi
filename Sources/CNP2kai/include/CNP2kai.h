@@ -29,6 +29,20 @@ void kyuhachi_eject_fdd(unsigned drive);
 /// Must be called on the core thread.
 void kyuhachi_set_hdd(unsigned drive, const char *path);
 
+/// Saves the whole machine state to `path`. Returns 1 on success.
+/// Must be called on the core thread.
+int kyuhachi_save_state(const char *path);
+
+/// Restores a state saved with kyuhachi_save_state, including the disks
+/// that were in the drives. Returns 1 on success. Must be called on the
+/// core thread.
+int kyuhachi_load_state(const char *path);
+
+/// The image in floppy drive `drive` or hard disk `drive`, or NULL when
+/// empty. Must be called on the core thread.
+const char *kyuhachi_fdd_path(unsigned drive);
+const char *kyuhachi_hdd_path(unsigned drive);
+
 /// The default value of one of NP2kai's libretro core options (the value
 /// RetroArch would pass unless the user changed it), or NULL if unknown.
 const char *kyuhachi_option_default(const char *key);
