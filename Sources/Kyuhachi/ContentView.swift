@@ -42,12 +42,10 @@ struct ContentView: View {
                 insertAndRemember(url, into: driveForChosenDisk)
             }
         }
-        .alert("Rename Game", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
-            TextField("Name", text: $newName)
-            Button("Rename") {
+        .sheet(isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            RenameSheet(name: $newName) {
                 if let renaming { library.rename(renaming, to: newName) }
             }
-            Button("Cancel", role: .cancel) {}
         }
         .sheet(item: $gameForSettings) { game in
             GameSettingsView(game: game, library: library, settings: settings)
@@ -270,6 +268,37 @@ struct ContentView: View {
         } else {
             emulator.showNotice(String(localized: "Could not create the disk"))
         }
+    }
+}
+
+/// Asks for a game's new name. A sheet rather than an alert, because an
+/// alert's text field does not get the focus when it opens.
+struct RenameSheet: View {
+    @Binding var name: String
+    let rename: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var nameFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Rename Game")
+                .font(.headline)
+            TextField("Name", text: $name)
+                .focused($nameFocused)
+                .frame(width: 280)
+            HStack {
+                Spacer()
+                Button("Cancel", role: .cancel) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Button("Rename") {
+                    rename()
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(20)
+        .defaultFocus($nameFocused, true)
     }
 }
 
