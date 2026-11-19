@@ -24,6 +24,12 @@ final class ScreenNSView: NSView {
     private let emulator: Emulator
     /// PC-98 keys currently held down, so they can be released on focus loss.
     private var heldKeys: Set<UInt8> = []
+    /// Mac keys typed as a translated stroke, with the PC-98 key each one
+    /// pressed. While any is down, the PC-98 SHIFT follows the stroke, not
+    /// the Mac's Shift key.
+    private var strokes: [UInt16: UInt8] = [:]
+    /// Whether the Mac's Shift key is down.
+    private var shiftDown = false
     /// Movement not yet sent because it was less than one PC-98 pixel.
     private var pendingMouse = CGPoint.zero
     /// Whether this view currently holds the cursor (hidden and fixed).
@@ -106,13 +112,24 @@ final class ScreenNSView: NSView {
             super.keyDown(with: event)
             return
         }
-        if !event.isARepeat, let code = KeyMap.pc98Code(for: event.keyCode) {
+        guard !event.isARepeat else { return }
+        if KeyMap.isANSI,
+           let stroke = KeyMap.usStroke(for: event.keyCode, shifted: event.modifierFlags.contains(.shift)) {
+            press(KeyMap.shift, down: stroke.shift)
+            press(stroke.code, down: true)
+            strokes[event.keyCode] = stroke.code
+        } else if let code = KeyMap.pc98Code(for: event.keyCode) {
             press(code, down: true)
         }
     }
 
     override func keyUp(with event: NSEvent) {
-        if let code = KeyMap.pc98Code(for: event.keyCode) {
+        if let code = strokes.removeValue(forKey: event.keyCode) {
+            press(code, down: false)
+            if strokes.isEmpty {
+                press(KeyMap.shift, down: shiftDown)
+            }
+        } else if let code = KeyMap.pc98Code(for: event.keyCode) {
             press(code, down: false)
         }
     }
@@ -124,7 +141,10 @@ final class ScreenNSView: NSView {
         }
         switch Int(event.keyCode) {
         case kVK_Shift, kVK_RightShift:
-            press(KeyMap.shift, down: flags.contains(.shift))
+            shiftDown = flags.contains(.shift)
+            if strokes.isEmpty {
+                press(KeyMap.shift, down: shiftDown)
+            }
         case kVK_Control, kVK_RightControl:
             press(KeyMap.ctrl, down: flags.contains(.control))
         case kVK_Option, kVK_RightOption:
@@ -151,6 +171,8 @@ final class ScreenNSView: NSView {
             emulator.key(code, down: false)
         }
         heldKeys = heldKeys.intersection([KeyMap.caps])
+        strokes = [:]
+        shiftDown = false
     }
 
     // MARK: Mouse

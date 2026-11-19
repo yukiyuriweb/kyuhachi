@@ -9,9 +9,53 @@ enum KeyMap {
     static let grph: UInt8 = 0x73
     static let ctrl: UInt8 = 0x74
 
+    /// A PC-98 key and the state its SHIFT must be in while it is pressed.
+    struct Stroke {
+        let code: UInt8
+        let shift: Bool
+    }
+
+    /// Whether the Mac's keyboard is a US (ANSI) one. Its symbol keys are
+    /// translated by legend rather than position, since the PC-98's differ.
+    static var isANSI: Bool {
+        KBGetLayoutType(Int16(LMGetKbdType())) == kKeyboardANSI
+    }
+
     static func pc98Code(for keyCode: UInt16) -> UInt8? {
         table[Int(keyCode)]
     }
+
+    /// The PC-98 stroke that types the character on a US key's legend, for
+    /// keys whose character differs from the PC-98 key in the same place.
+    static func usStroke(for keyCode: UInt16, shifted: Bool) -> Stroke? {
+        (shifted ? usShifted : usUnshifted)[Int(keyCode)]
+    }
+
+    private static let usUnshifted: [Int: Stroke] = [
+        kVK_ANSI_Grave: Stroke(code: 0x0c, shift: true),         // ` = SHIFT ^
+        kVK_ANSI_Equal: Stroke(code: 0x0b, shift: true),         // = = SHIFT -
+        kVK_ANSI_LeftBracket: Stroke(code: 0x1b, shift: false),  // [
+        kVK_ANSI_RightBracket: Stroke(code: 0x28, shift: false), // ]
+        kVK_ANSI_Backslash: Stroke(code: 0x0d, shift: false),    // \ = ¥
+        kVK_ANSI_Quote: Stroke(code: 0x07, shift: true),         // ' = SHIFT 7
+    ]
+
+    private static let usShifted: [Int: Stroke] = [
+        kVK_ANSI_Grave: Stroke(code: 0x1a, shift: true),         // ~ = SHIFT @
+        kVK_ANSI_2: Stroke(code: 0x1a, shift: false),            // @
+        kVK_ANSI_6: Stroke(code: 0x0c, shift: false),            // ^
+        kVK_ANSI_7: Stroke(code: 0x06, shift: true),             // & = SHIFT 6
+        kVK_ANSI_8: Stroke(code: 0x27, shift: true),             // * = SHIFT :
+        kVK_ANSI_9: Stroke(code: 0x08, shift: true),             // ( = SHIFT 8
+        kVK_ANSI_0: Stroke(code: 0x09, shift: true),             // ) = SHIFT 9
+        kVK_ANSI_Minus: Stroke(code: 0x33, shift: true),         // _ = SHIFT ろ
+        kVK_ANSI_Equal: Stroke(code: 0x26, shift: true),         // + = SHIFT ;
+        kVK_ANSI_LeftBracket: Stroke(code: 0x1b, shift: true),   // {
+        kVK_ANSI_RightBracket: Stroke(code: 0x28, shift: true),  // }
+        kVK_ANSI_Backslash: Stroke(code: 0x0d, shift: true),     // |
+        kVK_ANSI_Semicolon: Stroke(code: 0x27, shift: false),    // :
+        kVK_ANSI_Quote: Stroke(code: 0x02, shift: true),         // " = SHIFT 2
+    ]
 
     private static let table: [Int: UInt8] = [
         kVK_Escape: 0x00,
