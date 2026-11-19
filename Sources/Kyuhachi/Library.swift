@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftUI
 
 /// A game: a name and the disk images that make it up, in order. A game
 /// may have a hard disk image as well as (or instead of) floppies.
@@ -85,6 +86,12 @@ final class Library {
     func addDisk(_ url: URL, to id: Game.ID) {
         guard let i = games.firstIndex(where: { $0.id == id }), !games[i].disks.contains(url) else { return }
         games[i].disks.append(url)
+        save()
+    }
+
+    /// Reorders games, as dragged in the sidebar.
+    func move(fromOffsets source: IndexSet, toOffset destination: Int) {
+        games.move(fromOffsets: source, toOffset: destination)
         save()
     }
 

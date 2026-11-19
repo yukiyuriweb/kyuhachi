@@ -9,7 +9,10 @@ struct ContentView: View {
 
     @State private var selection: Game.ID?
     @State private var addingGame = false
-    @State private var choosingDiskForDrive: Int?
+    @State private var choosingDisk = false
+    // Kept apart from `choosingDisk`: the importer clears its isPresented
+    // binding before calling its completion handler.
+    @State private var driveForChosenDisk = 0
     @State private var renaming: Game.ID?
     @State private var newName = ""
     @State private var visibleNotice: Emulator.Notice?
@@ -32,19 +35,17 @@ struct ContentView: View {
             }
         }
         .fileImporter(
-            isPresented: Binding(get: { choosingDiskForDrive != nil }, set: { if !$0 { choosingDiskForDrive = nil } }),
+            isPresented: $choosingDisk,
             allowedContentTypes: [.data]
         ) { result in
-            if case .success(let url) = result, let drive = choosingDiskForDrive {
-                emulator.insert(url, into: drive)
+            if case .success(let url) = result {
+                insertAndRemember(url, into: driveForChosenDisk)
             }
         }
-        .alert("Rename Game", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
-            TextField("Name", text: $newName)
-            Button("Rename") {
+        .sheet(isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            RenameSheet(name: $newName) {
                 if let renaming { library.rename(renaming, to: newName) }
             }
-            Button("Cancel", role: .cancel) {}
         }
         .sheet(item: $gameForSettings) { game in
             GameSettingsView(game: game, library: library, settings: settings)
@@ -58,6 +59,7 @@ struct ContentView: View {
             ForEach(library.games) { game in
                 GameRow(game: game)
             }
+            .onMove { library.move(fromOffsets: $0, toOffset: $1) }
         }
         .contextMenu(forSelectionType: Game.ID.self) { ids in
             if let id = ids.first, let game = library.game(id) {
@@ -105,6 +107,15 @@ struct ContentView: View {
         }
     }
 
+    /// Puts a disk in a drive and keeps it in the running game's list, so the
+    /// drive menus offer it next time.
+    private func insertAndRemember(_ url: URL, into drive: Int) {
+        emulator.insert(url, into: drive)
+        if let id = emulator.currentGameID, floppyExtensions.contains(url.pathExtension.lowercased()) {
+            library.addDisk(url, to: id)
+        }
+    }
+
     private func play(_ game: Game) {
         library.markPlayed(game.id)
         emulator.play(game)
@@ -142,7 +153,7 @@ struct ContentView: View {
                 .navigationSubtitle(driveSummary)
                 .dropDestination(for: URL.self) { urls, _ in
                     for (drive, url) in urls.prefix(2).enumerated() {
-                        emulator.insert(url, into: drive)
+                        insertAndRemember(url, into: drive)
                     }
                     return !urls.isEmpty
                 }
@@ -230,7 +241,10 @@ struct ContentView: View {
                 ))
             }
             Divider()
-            Button("Other Disk…") { choosingDiskForDrive = drive }
+            Button("Other Disk…") {
+                driveForChosenDisk = drive
+                choosingDisk = true
+            }
             Button("New Blank Disk…") { createBlankDisk(in: drive, for: game) }
             Button("Eject") { emulator.eject(drive) }
                 .disabled(emulator.drives[drive] == nil)
@@ -254,6 +268,37 @@ struct ContentView: View {
         } else {
             emulator.showNotice(String(localized: "Could not create the disk"))
         }
+    }
+}
+
+/// Asks for a game's new name. A sheet rather than an alert, because an
+/// alert's text field does not get the focus when it opens.
+struct RenameSheet: View {
+    @Binding var name: String
+    let rename: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var nameFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Rename Game")
+                .font(.headline)
+            TextField("Name", text: $name)
+                .focused($nameFocused)
+                .frame(width: 280)
+            HStack {
+                Spacer()
+                Button("Cancel", role: .cancel) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Button("Rename") {
+                    rename()
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(20)
+        .defaultFocus($nameFocused, true)
     }
 }
 
