@@ -13,6 +13,9 @@ struct Game: Identifiable, Codable, Hashable {
     var options: [String: String]? = nil
     /// The disks to put in FDD1 and FDD2 at startup, if the user chose them.
     var startDisks: [URL?]? = nil
+    /// Whether letter keys type the PC-98 numeric keypad, for games that
+    /// expect one on a Mac without it.
+    var numpadMode: Bool? = nil
 
     var floppies: [URL] {
         disks.filter { floppyExtensions.contains($0.pathExtension.lowercased()) }
@@ -118,6 +121,12 @@ final class Library {
         var disks = games[i].startFloppies
         disks[drive] = url
         games[i].startDisks = disks
+        save()
+    }
+
+    func setNumpadMode(_ on: Bool, for id: Game.ID) {
+        guard let i = games.firstIndex(where: { $0.id == id }) else { return }
+        games[i].numpadMode = on ? true : nil
         save()
     }
 

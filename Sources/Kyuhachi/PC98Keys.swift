@@ -31,6 +31,19 @@ enum KeyMap {
         (shifted ? usShifted : usUnshifted)[Int(keyCode)]
     }
 
+    /// The PC-98 keypad key typed by a letter key in numpad mode, laid out
+    /// as on a 98NOTE: 7 8 9 / U I O / J K L / M.
+    static func numpadCode(for keyCode: UInt16) -> UInt8? {
+        numpad[Int(keyCode)]
+    }
+
+    private static let numpad: [Int: UInt8] = [
+        kVK_ANSI_7: 0x42, kVK_ANSI_8: 0x43, kVK_ANSI_9: 0x44,
+        kVK_ANSI_U: 0x46, kVK_ANSI_I: 0x47, kVK_ANSI_O: 0x48,
+        kVK_ANSI_J: 0x4a, kVK_ANSI_K: 0x4b, kVK_ANSI_L: 0x4c,
+        kVK_ANSI_M: 0x4e,
+    ]
+
     private static let usUnshifted: [Int: Stroke] = [
         kVK_ANSI_Grave: Stroke(code: 0x0c, shift: true),         // ` = SHIFT ^
         kVK_ANSI_Equal: Stroke(code: 0x0b, shift: true),         // = = SHIFT -
