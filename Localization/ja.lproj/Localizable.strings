@@ -43,6 +43,7 @@
 "State restored" = "保存した状態から再開しました";
 "Could not restore the state" = "保存した状態から再開できませんでした";
 "Machine" = "マシン";
+"Numpad Mode" = "テンキーモード";
 
 /* Settings */
 "Model" = "機種";

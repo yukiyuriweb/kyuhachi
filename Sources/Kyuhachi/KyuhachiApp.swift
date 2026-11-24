@@ -38,6 +38,12 @@ struct KyuhachiApp: App {
                 Button("Reset") { Emulator.shared.reset() }
                     .keyboardShortcut("r")
                     .disabled(Emulator.shared.currentGameID == nil)
+                Divider()
+                Toggle("Numpad Mode", isOn: Binding(
+                    get: { currentGame?.numpadMode ?? false },
+                    set: { on in currentGame.map { library.setNumpadMode(on, for: $0.id) } }))
+                    .keyboardShortcut("n", modifiers: [.command, .shift])
+                    .disabled(currentGame == nil)
             }
         }
 

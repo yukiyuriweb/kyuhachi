@@ -9,6 +9,7 @@ struct ScreenView: NSViewRepresentable {
     let emulator: Emulator
     let mouseCaptured: Bool
     let aspect: ScreenAspect
+    let numpadMode: Bool
 
     func makeNSView(context: Context) -> ScreenNSView {
         ScreenNSView(emulator: emulator)
@@ -17,6 +18,7 @@ struct ScreenView: NSViewRepresentable {
     func updateNSView(_ view: ScreenNSView, context: Context) {
         view.setMouseCaptured(mouseCaptured)
         view.aspect = aspect
+        view.numpadMode = numpadMode
     }
 }
 
@@ -36,6 +38,9 @@ final class ScreenNSView: NSView {
     private var pendingMouse = CGPoint.zero
     /// Whether this view currently holds the cursor (hidden and fixed).
     private var holdsCursor = false
+
+    /// Whether 7 8 9 / U I O / J K L / M type the PC-98 keypad.
+    var numpadMode = false
 
     var aspect: ScreenAspect = .square {
         didSet { if aspect != oldValue { needsLayout = true } }
@@ -116,7 +121,10 @@ final class ScreenNSView: NSView {
         }
         guard !event.isARepeat else { return }
         let code: UInt8
-        if KeyMap.isANSI,
+        if numpadMode, let keypad = KeyMap.numpadCode(for: event.keyCode) {
+            press(KeyMap.shift, down: shiftDown)
+            code = keypad
+        } else if KeyMap.isANSI,
            let stroke = KeyMap.usStroke(for: event.keyCode, shifted: event.modifierFlags.contains(.shift)) {
             press(KeyMap.shift, down: stroke.shift)
             strokes.insert(event.keyCode)

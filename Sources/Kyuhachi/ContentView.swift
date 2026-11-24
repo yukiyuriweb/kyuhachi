@@ -126,7 +126,8 @@ struct ContentView: View {
     @ViewBuilder
     private var detail: some View {
         if let game = currentGame {
-            ScreenView(emulator: emulator, mouseCaptured: emulator.mouseCaptured, aspect: settings.aspect)
+            ScreenView(emulator: emulator, mouseCaptured: emulator.mouseCaptured, aspect: settings.aspect,
+                       numpadMode: game.numpadMode ?? false)
                 .overlay(alignment: .top) {
                     if let visibleNotice {
                         Text(visibleNotice.text)
